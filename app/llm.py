@@ -178,16 +178,31 @@ def _explicit_location_from_message(message: str) -> str | None:
 def _normalize_extracted_intent(intent: UserIntent, message: str) -> UserIntent:
     """Post-process model output for stable, domain-specific intent fields."""
 
-    # Preserve an explicitly qualified location from the user's message.
-    # Do not let the LLM shorten "Ranchi, Jharkhand, India" to "Ranchi".
+    # Preserve explicitly qualified locations from the user's message.
+    # Example:
+    # "Ranchi, Jharkhand, India" must not become just "Ranchi".
     explicit_location = _explicit_location_from_message(message)
 
     if explicit_location:
         intent.location_query = explicit_location
 
-    # Stable semantic picnic classification.
-    if _looks_like_picnic_intent(message) and intent.activity in {None, "outdoor_activity"}:
+    # If the LLM missed the activity, use the deterministic activity
+    # classifier as a fallback. The fallback does not make a safety decision.
+    if intent.activity is None:
+        fallback = heuristic_intent(message)
+
+        if fallback.activity:
+            intent.activity = fallback.activity
+
+    # Preserve semantic picnic classification.
+    if _looks_like_picnic_intent(message) and intent.activity in {
+        None,
+        "outdoor_activity",
+    }:
         intent.activity = "picnic"
+
+    # Once we have both required fields, this is an outdoor safety request.
+    if intent.activity and intent.location_query:
         intent.scope = "safety"
         intent.is_safety_question = True
         intent.clarification_needed = None
