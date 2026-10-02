@@ -1,0 +1,210 @@
+sops:
+  - id: SOP-CYCLE-WIND-01
+    name: High Wind Cycling Risk
+    category: outdoor_exercise
+    description: Strong winds create a cycling/two-wheeler safety risk.
+    severity: HIGH
+    priority: 100
+    intent_any: [cycling]
+    weather_all:
+      - {field: wind_speed_kmh, op: ">=", value: 40}
+    advice: 'Do not treat cycling as routine when sustained wind reaches 40 km/h or more; postpone the ride or use a safer travel option.'
+    rationale: 'The policy defines 40 km/h as a cycling safety-risk threshold.'
+
+  - id: SOP-CYCLE-STORM-01
+    name: Thunderstorm or Severe Storm Cycling
+    category: outdoor_exercise
+    description: Severe weather codes trigger a high-severity cycling warning.
+    severity: EXTREME
+    priority: 120
+    intent_any: [cycling]
+    weather_all:
+      - {field: weather_code, op: ">=", value: 95}
+    advice: 'Do not cycle during severe storm conditions. Postpone the ride and remain in a safer location until conditions improve.'
+    rationale: 'WMO weather codes 95 and above indicate thunderstorm conditions that this policy treats as high risk for cycling.'
+
+  - id: SOP-CYCLE-RAIN-01
+    name: High Rain Probability for Cycling
+    category: outdoor_exercise
+    description: High precipitation probability makes a cycling trip less suitable.
+    severity: HIGH
+    priority: 90
+    intent_any: [cycling]
+    weather_all:
+      - {field: precipitation_probability_pct, op: ">=", value: 70}
+    advice: 'Postpone cycling or choose another travel option because the forecast gives a high probability of precipitation.'
+    rationale: 'A 70% or higher precipitation probability is the policy threshold for a cycling warning.'
+
+  - id: SOP-CYCLE-UV-01
+    name: High UV Cycling
+    category: outdoor_exercise
+    description: High UV requires avoiding unprotected cycling during the affected period.
+    severity: MODERATE
+    priority: 70
+    intent_any: [cycling]
+    weather_all:
+      - {field: uv_index, op: ">=", value: 8}
+    advice: 'Avoid unprotected cycling during the high-UV period; if you must go out, use sun protection and consider an earlier or later time.'
+    rationale: 'UV index 8 or higher is the policy threshold for high-UV outdoor exercise guidance.'
+
+  - id: SOP-CYCLE-NORMAL-01
+    name: Routine Cycling Conditions
+    category: outdoor_exercise
+    description: Routine cycling is covered when the listed high-risk triggers are absent.
+    severity: LOW
+    priority: 10
+    intent_any: [cycling]
+    weather_all:
+      - {field: wind_speed_kmh, op: "<", value: 40}
+      - {field: precipitation_probability_pct, op: "<", value: 70}
+      - {field: weather_code, op: "not_in", value: [95, 96, 99]}
+    advice: 'The available policy does not identify a cycling-specific high-risk trigger for these conditions. Use ordinary precautions and reassess if the weather changes.'
+    rationale: 'This baseline policy provides controlled guidance for cycling when the defined high-risk triggers are absent.'
+
+  - id: SOP-TRAVEL-RAIN-01
+    name: High Precipitation Probability for Travel
+    category: travel
+    description: High rain probability can affect travel reliability.
+    severity: MODERATE
+    priority: 50
+    intent_any: [travel]
+    weather_all:
+      - {field: precipitation_probability_pct, op: ">=", value: 70}
+    advice: 'Allow extra travel time and check relevant travel or local alerts before departure because precipitation is likely.'
+    rationale: 'A 70% or higher precipitation probability is the travel-delay warning threshold.'
+
+  - id: SOP-TRAVEL-WIND-01
+    name: Strong Wind for Travel
+    category: travel
+    description: Strong winds can affect exposed travel and two-wheeler trips.
+    severity: HIGH
+    priority: 80
+    intent_any: [travel]
+    weather_all:
+      - {field: wind_speed_kmh, op: ">=", value: 50}
+    advice: 'Reconsider exposed or two-wheeler travel and check current local alerts before departure because wind is at or above the policy threshold.'
+    rationale: '50 km/h is the policy threshold for a high-wind travel warning.'
+
+  - id: SOP-CHILD-HEAT-01
+    name: Hot Conditions for Children Outdoors
+    category: vulnerable_groups
+    description: High temperature increases concern for children's outdoor activity.
+    severity: HIGH
+    priority: 75
+    intent_any: [children]
+    weather_all:
+      - {field: temperature_c, op: ">=", value: 35}
+    advice: 'Avoid prolonged outdoor activity for children in these temperatures; choose a cooler period or indoor setting and provide regular hydration.'
+    rationale: '35 C is the policy threshold for high-temperature child outdoor guidance.'
+
+  - id: SOP-CHILD-STORM-01
+    name: Severe Storm Conditions for Children
+    category: vulnerable_groups
+    description: Severe storm codes require avoiding outdoor activity for children.
+    severity: EXTREME
+    priority: 110
+    intent_any: [children]
+    weather_all:
+      - {field: weather_code, op: ">=", value: 95}
+    advice: 'Keep children indoors during severe storm conditions and postpone outdoor activity.'
+    rationale: 'Severe storm weather codes are treated as an extreme outdoor risk for children.'
+
+  - id: SOP-ELDERLY-HEAT-01
+    name: Hot Conditions for Older Adults Outdoors
+    category: vulnerable_groups
+    description: High temperature increases concern for outdoor activity for older adults.
+    severity: HIGH
+    priority: 75
+    intent_any: [elderly]
+    weather_all:
+      - {field: temperature_c, op: ">=", value: 35}
+    advice: 'Avoid prolonged outdoor activity during the hottest period and prefer a cooler time or indoor setting.'
+    rationale: '35 C is the policy threshold for high-temperature older-adult outdoor guidance.'
+
+  - id: SOP-PETS-HEAT-01
+    name: Hot Conditions for Pets
+    category: pets
+    description: High temperature requires limiting prolonged outdoor activity for pets.
+    severity: HIGH
+    priority: 65
+    intent_any: [pets]
+    weather_all:
+      - {field: temperature_c, op: ">=", value: 35}
+    advice: 'Avoid prolonged outdoor activity for pets in these temperatures and choose a cooler period for necessary outings.'
+    rationale: '35 C is the policy threshold for hot-weather pet guidance.'
+
+  - id: SOP-PICNIC-FUZZY-01
+    name: Picnic Suitability Combination Rule
+    category: recreation
+    description: A picnic question is evaluated using a combination of weather factors rather than one threshold.
+    severity: MODERATE
+    priority: 40
+    intent_any: [picnic]
+    weather_all:
+      - {field: precipitation_probability_pct, op: "<", value: 50}
+      - {field: wind_speed_kmh, op: "<", value: 30}
+      - {field: temperature_c, op: ">=", value: 18}
+      - {field: temperature_c, op: "<", value: 35}
+      - {field: weather_code, op: "not_in", value: [95, 96, 99]}
+    advice: "The policy's combined conditions are suitable for a picnic: no severe storm trigger, lower rain probability, manageable wind, and a moderate temperature range."
+    rationale: 'This is a deliberately fuzzy multi-factor policy for picnic suitability rather than a single numeric threshold.'
+
+  - id: SOP-PARK-RAIN-01
+    name: High Rain Probability for Park Activity
+    category: recreation
+    description: High rain probability makes a park outing less suitable.
+    severity: MODERATE
+    priority: 45
+    intent_any: [park]
+    weather_all:
+      - {field: precipitation_probability_pct, op: ">=", value: 70}
+    advice: 'Consider postponing the park outing or choosing an indoor alternative because rain is likely.'
+    rationale: '70% precipitation probability is the park-activity warning threshold.'
+
+  - id: SOP-RUN-UV-01
+    name: High UV Running Risk
+    category: outdoor_exercise
+    description: High UV requires limiting unprotected running during the affected period.
+    severity: MODERATE
+    priority: 60
+    intent_any: [running]
+    weather_all:
+      - {field: uv_index, op: ">=", value: 8}
+    advice: 'Avoid unprotected running during the high-UV period; use sun protection and consider an earlier or later time.'
+    rationale: 'UV index 8 or higher is the policy threshold for high-UV running guidance.'
+
+  - id: SOP-HIKE-STORM-01
+    name: Severe Storm Hiking Risk
+    category: outdoor_exercise
+    description: Severe storm codes require postponing hiking.
+    severity: EXTREME
+    priority: 115
+    intent_any: [hiking]
+    weather_all:
+      - {field: weather_code, op: ">=", value: 95}
+    advice: 'Do not start or continue a hike during severe storm conditions; postpone until the severe weather trigger is no longer present.'
+    rationale: 'Severe storm weather codes are treated as an extreme hiking risk.'
+
+  - id: SOP-OUTDOOR-STORM-01
+    name: Severe Storm for Any Outdoor Activity
+    category: general_outdoor
+    description: Severe storm conditions override activity-specific categories for a general outdoor-safety question.
+    severity: EXTREME
+    priority: 200
+    intent_any: [outdoor_activity]
+    weather_all:
+      - {field: weather_code, op: ">=", value: 95}
+    advice: 'Do not proceed with the outdoor activity during severe storm conditions. Postpone it until the severe-weather trigger is no longer present.'
+    rationale: 'Severe storm conditions are treated as high severity for any outdoor-activity question.'
+
+  - id: SOP-OUTDOOR-RAIN-01
+    name: Heavy Rain Probability for Any Outdoor Activity
+    category: general_outdoor
+    description: High precipitation probability makes a general outdoor activity less suitable.
+    severity: HIGH
+    priority: 95
+    intent_any: [outdoor_activity]
+    weather_all:
+      - {field: precipitation_probability_pct, op: ">=", value: 70}
+    advice: 'Consider postponing the outdoor activity because rain is likely; check current local alerts before going out.'
+    rationale: 'A 70% or higher precipitation probability is the policy threshold for general outdoor-activity caution.'
