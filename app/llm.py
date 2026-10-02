@@ -60,7 +60,10 @@ def _llm():
 
 
 def extract_intent(message: str) -> UserIntent:
-    """Use Groq for structured intent extraction, with a deterministic fallback."""
+    """Extract intent and always apply deterministic post-processing."""
+
+    intent = None
+
     if GROQ_API_KEY:
         try:
             from langchain_core.prompts import ChatPromptTemplate
@@ -71,18 +74,22 @@ def extract_intent(message: str) -> UserIntent:
                     ("human", "Classify this user message:\n{message}"),
                 ]
             )
-            # Groq supports structured/JSON-mode output through LangChain integrations.
-            chain = prompt | _llm().with_structured_output(UserIntent, method="json_mode")
-            return _normalize_extracted_intent(
-                chain.invoke({"message": message}),
-                message,
-            )
-        except Exception:
-            # A transient model/API/configuration failure should not make local
-            # deterministic tests depend on a live provider.
-            return heuristic_intent(message)
 
-    return heuristic_intent(message)
+            chain = prompt | _llm().with_structured_output(
+                UserIntent,
+                method="json_mode",
+            )
+
+            intent = chain.invoke({"message": message})
+
+        except Exception:
+            intent = heuristic_intent(message)
+
+    else:
+        intent = heuristic_intent(message)
+
+    # ALWAYS normalize, regardless of whether Groq or the fallback produced the intent.
+    return _normalize_extracted_intent(intent, message)
 
 
 def _looks_like_picnic_intent(text: str) -> bool:
@@ -159,35 +166,62 @@ def _looks_like_picnic_intent(text: str) -> bool:
     # Require outdoor context plus leisure/social context. This avoids promoting
     # ordinary outdoor work/travel questions to picnic.
     return setting and (leisure or food_or_social)
+
+
 def _explicit_location_from_message(message: str) -> str | None:
-    """Extract an explicitly qualified location such as 'Ranchi, Jharkhand, India'."""
+    """Extract an explicitly qualified location from the original user message."""
+
+    text = re.sub(r"\s+", " ", message).strip()
+
+    # Case:
+    # "Is it safe to cycle in Ranchi, Jharkhand, India today?"
     match = re.search(
         r"\b(?:in|at|near)\s+"
-        r"([A-Za-z][A-Za-z .'-]*(?:,\s*[A-Za-z][A-Za-z .'-]*)+)"
-        r"(?:\s+(?:today|tomorrow|tonight|this evening|right now|now)\b|\?|$)",
-        message,
-        re.I,
+        r"(.+?)"
+        r"(?=\s+(?:today|tomorrow|tonight|this evening|right now|now)\b"
+        r"|\s*[?!]\s*$)",
+        text,
+        re.IGNORECASE,
     )
 
-    if not match:
-        return None
+    if match:
+        candidate = match.group(1).strip(" ,.?!")
+        parts = [p.strip() for p in candidate.split(",") if p.strip()]
 
-    return match.group(1).strip(" ,")
+        # Only treat comma-qualified text as an explicit location.
+        if len(parts) >= 2:
+            return ", ".join(parts[:3])
+
+    # Case:
+    # "Ranchi, Jharkhand, India"
+    match = re.fullmatch(
+        r"([A-Za-z][A-Za-z .'-]*"
+        r"(?:\s*,\s*[A-Za-z][A-Za-z .'-]*){1,2})"
+        r"\s*[?!]?",
+        text,
+        re.IGNORECASE,
+    )
+
+    if match:
+        return match.group(1).strip(" ,?!")
+
+    return None
 
 
-def _normalize_extracted_intent(intent: UserIntent, message: str) -> UserIntent:
-    """Post-process model output for stable, domain-specific intent fields."""
+def _normalize_extracted_intent(
+    intent: UserIntent,
+    message: str,
+) -> UserIntent:
+    """Deterministically preserve critical fields from the original message."""
 
-    # Preserve explicitly qualified locations from the user's message.
-    # Example:
-    # "Ranchi, Jharkhand, India" must not become just "Ranchi".
+    # Never let the LLM shorten:
+    # "Ranchi, Jharkhand, India" -> "Ranchi"
     explicit_location = _explicit_location_from_message(message)
 
     if explicit_location:
         intent.location_query = explicit_location
 
-    # If the LLM missed the activity, use the deterministic activity
-    # classifier as a fallback. The fallback does not make a safety decision.
+    # Recover activity if the model missed it.
     if intent.activity is None:
         fallback = heuristic_intent(message)
 
@@ -201,7 +235,7 @@ def _normalize_extracted_intent(intent: UserIntent, message: str) -> UserIntent:
     }:
         intent.activity = "picnic"
 
-    # Once we have both required fields, this is an outdoor safety request.
+    # Re-establish safety scope once the required fields are known.
     if intent.activity and intent.location_query:
         intent.scope = "safety"
         intent.is_safety_question = True
