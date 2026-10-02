@@ -5,7 +5,12 @@ import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
+import sys
+from pathlib import Path
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 from app.graph import invoke
 
 st.set_page_config(page_title="Weather-Advisory Support Bot", page_icon="🌦️", layout="centered")
