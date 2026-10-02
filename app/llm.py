@@ -159,15 +159,39 @@ def _looks_like_picnic_intent(text: str) -> bool:
     # Require outdoor context plus leisure/social context. This avoids promoting
     # ordinary outdoor work/travel questions to picnic.
     return setting and (leisure or food_or_social)
+def _explicit_location_from_message(message: str) -> str | None:
+    """Extract an explicitly qualified location such as 'Ranchi, Jharkhand, India'."""
+    match = re.search(
+        r"\b(?:in|at|near)\s+"
+        r"([A-Za-z][A-Za-z .'-]*(?:,\s*[A-Za-z][A-Za-z .'-]*)+)"
+        r"(?:\s+(?:today|tomorrow|tonight|this evening|right now|now)\b|\?|$)",
+        message,
+        re.I,
+    )
+
+    if not match:
+        return None
+
+    return match.group(1).strip(" ,")
 
 
 def _normalize_extracted_intent(intent: UserIntent, message: str) -> UserIntent:
-    """Post-process model output for stable, domain-specific activity labels."""
+    """Post-process model output for stable, domain-specific intent fields."""
+
+    # Preserve an explicitly qualified location from the user's message.
+    # Do not let the LLM shorten "Ranchi, Jharkhand, India" to "Ranchi".
+    explicit_location = _explicit_location_from_message(message)
+
+    if explicit_location:
+        intent.location_query = explicit_location
+
+    # Stable semantic picnic classification.
     if _looks_like_picnic_intent(message) and intent.activity in {None, "outdoor_activity"}:
         intent.activity = "picnic"
         intent.scope = "safety"
         intent.is_safety_question = True
         intent.clarification_needed = None
+
     return intent
 
 
